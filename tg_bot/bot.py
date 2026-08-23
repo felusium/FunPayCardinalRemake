@@ -1518,12 +1518,9 @@ class TGBot:
 
         Localizer(lang)
         self.cardinal.MAIN_CFG["Other"]["language"] = lang
-        self.cardinal.MAIN_CFG["FunPay"]["locale"] = lang
         if not self.cardinal.MAIN_CFG.has_section("DisplayCurrency"):
             self.cardinal.MAIN_CFG.add_section("DisplayCurrency")
         self.cardinal.MAIN_CFG["DisplayCurrency"]["currency"] = "UAH" if lang == "uk" else "RUB"
-        if getattr(self.cardinal, "account", None):
-            self.cardinal.account.locale = lang
         self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
         self.bot.edit_message_text(_("desc_lang"), c.message.chat.id, c.message.id,
                                    reply_markup=kb.language_settings(self.cardinal))

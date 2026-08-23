@@ -206,9 +206,9 @@ class Account:
                 link = self.normalize_url(api_method, locale)
             else:
                 link = self.normalize_url(api_method)
+            # Do not send setlocale to FunPay: the bot UI language must not
+            # change the language selected in the user's FunPay account/site.
             locale = locale or self.__set_locale
-            if request_method == "get" and locale and locale != self.locale:
-                link += f'{"&" if "?" in link else "?"}setlocale={locale}'
 
         kwargs = {"method": request_method,
                   "headers": headers,

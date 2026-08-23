@@ -1,4 +1,4 @@
-"""
+﻿"""
 В данном модуле написаны хэндлеры для разных эвентов.
 """
 
@@ -89,7 +89,7 @@ def old_log_msg_handler(c: Cardinal, e: LastChatMessageChangedEvent):
     logger.info(_("log_new_msg", chat_name, chat_id))
     for index, line in enumerate(text.split("\n")):
         if not index:
-            logger.info(f"$MAGENTA└───> $YELLOW{username}: $CYAN{line}")
+            logger.info(f"$MAGENTAв””в”Ђв”Ђв”Ђ> $YELLOW{username}: $CYAN{line}")
         else:
             logger.info(f"      $CYAN{line}")
 
@@ -106,7 +106,7 @@ def log_msg_handler(c: Cardinal, e: NewMessageEvent):
         username, text = event.message.author, event.message.text or event.message.image_link
         for line_index, line in enumerate(text.split("\n")):
             if not index and not line_index:
-                logger.info(f"$MAGENTA└───> $YELLOW{username}: $CYAN{line}")
+                logger.info(f"$MAGENTAв””в”Ђв”Ђв”Ђ> $YELLOW{username}: $CYAN{line}")
             elif not line_index:
                 logger.info(f"      $YELLOW{username}: $CYAN{line}")
             else:
@@ -269,48 +269,15 @@ def send_new_msg_notification_handler(c: Cardinal, e: NewMessageEvent) -> None:
             any([m and not c.only_my_msg_enabled, f and not c.only_fp_msg_enabled, b and not c.only_bot_msg_enabled]):
         return
 
-    text = ""
-    last_message_author_id = -1
-    last_by_bot = False
-    last_badge = None
-    last_by_vertex = False
-    for i in events:
-        message_text = str(i.message)
-        if message_text.strip().lower() in c.AR_CFG.sections() and len(events) < 2:
+    if len(events) < 2:
+        message_text = str(events[0].message)
+        if message_text.strip().lower() in c.AR_CFG.sections() or \
+                message_text.startswith(("!автовидача", "!автовыдача")):
             return
-        elif message_text.startswith(("!автовидача", "!автовыдача")) and len(events) < 2:
-            return
-        if i.message.author_id == last_message_author_id and i.message.by_bot == last_by_bot and \
-                i.message.badge == last_badge and i.message.by_vertex == last_by_vertex:
-            author = ""
-        elif i.message.author_id == c.account.id:
-            author = f"<i><b>🤖 {_('you')} (<i>FPC</i>):</b></i> " if i.message.by_bot else f"<i><b>🫵 {_('you')}:</b></i> "
-            if i.message.is_autoreply:
-                author = f"<i><b>📦 {_('you')} ({i.message.badge}):</b></i> "
-        elif i.message.author_id == 0:
-            author = f"<i><b>🔵 {i.message.author}: </b></i>"
-        elif i.message.is_employee:
-            author = f"<i><b>🆘 {i.message.author} ({i.message.badge}): </b></i>"
-        elif i.message.author == i.message.chat_name:
-            author = f"<i><b>👤 {i.message.author}: </b></i>"
-            if i.message.is_autoreply:
-                author = f"<i><b>🛍️ {i.message.author} ({i.message.badge}):</b></i> "
-            elif i.message.author in c.blacklist:
-                author = f"<i><b>🚷 {i.message.author}: </b></i>"
-            elif i.message.by_bot:
-                author = f"<i><b>🐦 {i.message.author}: </b></i>"
-            elif i.message.by_vertex:
-                author = f"<i><b>🐺 {i.message.author}: </b></i>"
-        else:
-            author = f"<i><b>🆘 {i.message.author} {_('support')}: </b></i>"
-        msg_text = f"<code>{utils.escape(i.message.text)}</code>" if i.message.text else \
-            f"<a href=\"{i.message.image_link}\">" \
-            f"{c.show_image_name and not (i.message.author_id == c.account.id and i.message.by_bot) and i.message.image_name or _('photo')}</a>"
-        text += f"{author}{msg_text}\n\n"
-        last_message_author_id = i.message.author_id
-        last_by_bot = i.message.by_bot
-        last_by_vertex = i.message.by_vertex
-        last_badge = i.message.badge
+
+    text = utils.format_messages(c, [i.message for i in events])
+    if not text:
+        return
     kb = keyboards.reply(chat_id, chat_name, extend=True, quick_actions=True)
     Thread(target=c.telegram.send_notification, args=(text, kb, utils.NotificationTypes.new_message),
            daemon=True).start()
@@ -323,7 +290,7 @@ def send_review_notification(c: Cardinal, order: Order, chat_id: int, reply_text
         return
     reply_text = _("ntfc_review_reply_text").format(utils.escape(reply_text)) if reply_text else ""
     Thread(target=c.telegram.send_notification,
-           args=(_("ntfc_new_review").format('⭐' * order.review.stars, order.id, utils.escape(order.review.text),
+           args=(_("ntfc_new_review").format('в­ђ' * order.review.stars, order.id, utils.escape(order.review.text),
                                              reply_text),
                  keyboards.new_order(order.id, order.buyer_username, chat_id),
                  utils.NotificationTypes.review),
@@ -482,7 +449,7 @@ def send_categories_raised_notification_handler(c: Cardinal, cat: types.Category
            kwargs={"notification_type": utils.NotificationTypes.lots_raise}, daemon=True).start()
 
 
-# Изменен список ордеров (REGISTER_TO_ORDERS_LIST_CHANGED)
+# Изменен список заказов (REGISTER_TO_ORDERS_LIST_CHANGED)
 def get_lot_config_by_name(c: Cardinal, name: str) -> configparser.SectionProxy | None:
     """
     Ищет секцию лота в конфиге автовыдачи.

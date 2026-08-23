@@ -348,6 +348,12 @@ chat_id: int - ID Telegram чата.
 notification_type: str - тип уведомлений (tg_bot.utils.NotificationTypes).
 """
 
+LANG = "63"
+"""
+Изменить язык интерфейса.
+Использование: CBT.LANG:{lang}
+"""
+
 REQUEST_REFUND = "32"
 """
 Callback для обновления меню с действиями по заказу (уточнение по возврату средств)

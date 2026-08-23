@@ -484,7 +484,7 @@ class Account:
                 sellers[seller_key] = seller
             else:
                 seller = sellers[seller_key]
-            for i in ("online", "auto"):
+            for i in ("online", "auto", "user"):
                 if i in attributes:
                     del attributes[i]
 
@@ -1850,6 +1850,10 @@ class Account:
         if not start_from:
             username = parser.find("div", {"class": "user-link-name"})
             if not username:
+                raise exceptions.UnauthorizedError(response)
+
+            header = parser.select_one("h1.page-header.page-header-no-hr")
+            if not header or header.text.strip().lower() not in ("мої продажі", "мои продажи", "my sales"):
                 raise exceptions.UnauthorizedError(response)
 
         next_order_id = parser.find("input", {"type": "hidden", "name": "continue"})

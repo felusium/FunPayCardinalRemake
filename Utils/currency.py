@@ -3,7 +3,7 @@ from __future__ import annotations
 from configparser import ConfigParser
 
 
-DEFAULT_DISPLAY_CURRENCY = "UAH"
+DEFAULT_DISPLAY_CURRENCY = "RUB"
 DEFAULT_UAH_RATE = 43.5
 DEFAULT_FUNPAY_RUB_TO_USD_RATE = 80.521
 DEFAULT_FUNPAY_UAH_RUB_RATE = 0.543
@@ -11,6 +11,12 @@ DEFAULT_WITHDRAW_COMMISSION_PERCENT = 0.0
 
 
 def get_display_currency(config: ConfigParser | None) -> str:
+    if config and config.has_section("DisplayCurrency"):
+        value = config["DisplayCurrency"].get("currency", DEFAULT_DISPLAY_CURRENCY).strip().upper()
+        if value in ("RUB", "UAH"):
+            return value
+    if config and config.has_section("Other") and config["Other"].get("language", "").strip().lower() == "uk":
+        return "UAH"
     return DEFAULT_DISPLAY_CURRENCY
 
 
@@ -86,6 +92,9 @@ def uah_to_rub(amount: int | float, config: ConfigParser | None = None) -> float
 
 def format_money(amount: int | float, money_currency, config: ConfigParser | None = None,
                  include_withdraw_commission: bool = False) -> str:
+    if get_display_currency(config) == "RUB":
+        unit = "₽" if is_rub(money_currency) else getattr(money_currency, "name", "RUB")
+        return f"{format_amount(amount)} {unit}"
     if is_rub(money_currency):
         return f"{format_amount(rub_to_uah(amount, config, include_withdraw_commission))} UAH"
     if is_usd(money_currency):
@@ -95,6 +104,8 @@ def format_money(amount: int | float, money_currency, config: ConfigParser | Non
 
 def format_rub_as_display(amount: int | float, config: ConfigParser | None = None,
                           include_withdraw_commission: bool = False) -> str:
+    if get_display_currency(config) == "RUB":
+        return f"{format_amount(amount)} ₽"
     return f"{format_amount(rub_to_uah(amount, config, include_withdraw_commission))} UAH"
 
 

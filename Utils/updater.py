@@ -81,7 +81,7 @@ def _copy_path(src: Path, dst: Path, root: Path) -> None:
 def _find_source_root(extract_dir: Path) -> Path:
     dirs = [p for p in extract_dir.iterdir() if p.is_dir()]
     if len(dirs) != 1:
-        raise RuntimeError("Не вдалося знайти папку проєкту в архіві.")
+        raise RuntimeError("Не удалось найти папку проекта в архиве.")
     source_root = dirs[0]
     if not (source_root / "main.py").exists():
         raise RuntimeError("В архиве не найден main.py.")

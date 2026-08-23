@@ -466,14 +466,24 @@ class TGBot:
             return
 
         raw_rate = parts[1].strip().replace(",", ".")
+        if raw_rate.lower() in ("off", "rub", "rur", "руб", "рубли", "выкл", "вимк"):
+            if not self.cardinal.MAIN_CFG.has_section("DisplayCurrency"):
+                self.cardinal.MAIN_CFG.add_section("DisplayCurrency")
+            self.cardinal.MAIN_CFG.set("DisplayCurrency", "currency", "RUB")
+            self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
+            self.bot.send_message(m.chat.id, _("uah_rate_disabled"))
+            return
+
         if raw_rate.lower() in ("auto", "funpay", "update", "оновити", "обновить"):
-            msg = self.bot.send_message(m.chat.id, _("usdt_rate_updating"))
+            msg = self.bot.send_message(m.chat.id, _("uah_rate_updating"))
             if self.cardinal.update_funpay_withdraw_rate():
                 rate = currency.get_funpay_uah_rub_rate(self.cardinal.MAIN_CFG)
-                self.bot.edit_message_text(_("usdt_rate_auto_changed", currency.format_rate(rate)),
+                self.cardinal.MAIN_CFG.set("DisplayCurrency", "currency", "UAH")
+                self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
+                self.bot.edit_message_text(_("uah_rate_auto_changed", currency.format_rate(rate)),
                                            msg.chat.id, msg.id)
             else:
-                self.bot.edit_message_text(_("usdt_rate_auto_error"), msg.chat.id, msg.id)
+                self.bot.edit_message_text(_("uah_rate_auto_error"), msg.chat.id, msg.id)
             return
 
         try:
@@ -493,44 +503,6 @@ class TGBot:
         self.cardinal.MAIN_CFG.set("DisplayCurrency", "funpayRateUpdatedAt", str(int(time.time())))
         self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
         self.bot.send_message(m.chat.id, _("uah_rate_changed", currency.format_rate(rate)))
-
-    def change_usdt_rate(self, m: Message):
-        """
-        Показывает, меняет или обновляет курс FunPay UAH/RUB.
-        """
-        parts = m.text.split(maxsplit=1)
-        if len(parts) == 1:
-            funpay_rate = currency.get_funpay_uah_rub_rate(self.cardinal.MAIN_CFG)
-            self.bot.send_message(m.chat.id, _("usdt_rate_info", currency.format_rate(funpay_rate)))
-            return
-
-        raw_rate = parts[1].strip().replace(",", ".")
-        if raw_rate.lower() in ("auto", "funpay", "update", "оновити", "обновить"):
-            msg = self.bot.send_message(m.chat.id, _("usdt_rate_updating"))
-            if self.cardinal.update_funpay_withdraw_rate():
-                funpay_rate = currency.get_funpay_uah_rub_rate(self.cardinal.MAIN_CFG)
-                self.bot.edit_message_text(_("usdt_rate_auto_changed", currency.format_rate(funpay_rate)),
-                                           msg.chat.id, msg.id)
-            else:
-                self.bot.edit_message_text(_("usdt_rate_auto_error"), msg.chat.id, msg.id)
-            return
-
-        try:
-            rate = float(raw_rate)
-        except ValueError:
-            self.bot.send_message(m.chat.id, _("usdt_rate_error"))
-            return
-
-        if rate <= 0 or rate > 5:
-            self.bot.send_message(m.chat.id, _("usdt_rate_error"))
-            return
-
-        if not self.cardinal.MAIN_CFG.has_section("DisplayCurrency"):
-            self.cardinal.MAIN_CFG.add_section("DisplayCurrency")
-        self.cardinal.MAIN_CFG.set("DisplayCurrency", "funpayUahRubRate", currency.format_rate(rate))
-        self.cardinal.MAIN_CFG.set("DisplayCurrency", "funpayRateUpdatedAt", str(int(time.time())))
-        self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
-        self.bot.send_message(m.chat.id, _("usdt_rate_changed", currency.format_rate(rate)))
 
     def act_change_cookie(self, m: Message):
         """
@@ -631,6 +603,16 @@ class TGBot:
     def _withdraw_rub_to_uah(self, amount_rub: int | float, include_withdraw_commission: bool = False) -> float:
         return currency.rub_to_uah(amount_rub, self.cardinal.MAIN_CFG, include_withdraw_commission)
 
+    def _format_withdraw_rub_display(self, amount_rub: int | float) -> str:
+        if currency.get_display_currency(self.cardinal.MAIN_CFG) == "UAH":
+            return f"{currency.format_amount(self._withdraw_rub_to_uah(amount_rub, False))} ₴"
+        return f"{currency.format_amount(amount_rub)} ₽"
+
+    def _withdraw_display_to_rub(self, amount: int | float) -> float:
+        if currency.get_display_currency(self.cardinal.MAIN_CFG) == "UAH":
+            return currency.uah_to_rub(amount, self.cardinal.MAIN_CFG)
+        return float(amount)
+
     def _withdraw_ext_to_uah(self, amount_ext: int | float, wallet: dict) -> float:
         ext_id = str(wallet.get("ext_currency_id", "")).lower()
         ext_name = str(wallet.get("ext_currency_name", "")).lower()
@@ -660,7 +642,7 @@ class TGBot:
         if amount <= 0:
             raise ValueError
 
-        return currency.uah_to_rub(amount, self.cardinal.MAIN_CFG)
+        return self._withdraw_display_to_rub(amount)
 
     def open_withdraw_menu(self, c: CallbackQuery):
         """
@@ -726,8 +708,8 @@ class TGBot:
 
         if amount_int > float(self.cardinal.balance.available_rub):
             self.bot.send_message(m.chat.id, _("withdraw_not_enough_balance",
-                                               currency.format_amount(self._withdraw_rub_to_uah(
-                                                   self.cardinal.balance.available_rub, False))))
+                                               self._format_withdraw_rub_display(
+                                                   self.cardinal.balance.available_rub)))
             return
 
         try:
@@ -749,7 +731,7 @@ class TGBot:
         session["amount_ext"] = amount_ext
         self.withdraw_sessions[self._withdraw_key(m.chat.id, m.from_user.id)] = session
         text = _("withdraw_confirm_text",
-                 currency.format_amount(self._withdraw_rub_to_uah(amount_int, False)),
+                 self._format_withdraw_rub_display(amount_int),
                  currency.format_amount(self._withdraw_ext_to_uah(amount_ext, wallet)),
                  utils.escape(self._format_withdraw_ext_amount(amount_ext, wallet)),
                  utils.escape(wallet.get("wallet", "-")))
@@ -796,7 +778,7 @@ class TGBot:
         except Exception:
             logger.debug("TRACEBACK", exc_info=True)
         self.bot.edit_message_text(_("withdraw_success",
-                                    currency.format_amount(self._withdraw_rub_to_uah(amount_int, False)),
+                                    self._format_withdraw_rub_display(amount_int),
                                     currency.format_amount(self._withdraw_ext_to_uah(session["amount_ext"], wallet)),
                                     utils.escape(self._format_withdraw_ext_amount(session["amount_ext"], wallet))),
                                    c.message.chat.id, c.message.id)
@@ -831,7 +813,7 @@ class TGBot:
         except Exception:
             logger.debug("TRACEBACK", exc_info=True)
         self.bot.send_message(m.chat.id, _("withdraw_success",
-                                           currency.format_amount(self._withdraw_rub_to_uah(amount_int, False)),
+                                           self._format_withdraw_rub_display(amount_int),
                                            currency.format_amount(self._withdraw_ext_to_uah(session["amount_ext"], wallet)),
                                            utils.escape(self._format_withdraw_ext_amount(session["amount_ext"], wallet))))
 
@@ -1337,52 +1319,10 @@ class TGBot:
         if chat.looking_link:
             text += f"<b><i>{_('viewing')}:</i></b>\n<a href=\"{chat.looking_link}\">{chat.looking_text}</a>\n\n"
 
-        messages = chat.messages[-10:]
-        last_message_author_id = -1
-        last_by_bot = False
-        last_badge = None
-        last_by_vertex = False
-        for i in messages:
-            if i.author_id == last_message_author_id and i.by_bot == last_by_bot and i.badge == last_badge and \
-                    last_by_vertex == i.by_vertex:
-                author = ""
-            elif i.author_id == self.cardinal.account.id:
-                author = f"<i><b>🤖 {_('you')} (<i>FPC</i>):</b></i> " if i.by_bot else f"<i><b>🫵 {_('you')}:</b></i> "
-                if i.is_autoreply:
-                    author = f"<i><b>📦 {_('you')} ({i.badge}):</b></i> "
-            elif i.author_id == 0:
-                author = f"<i><b>🔵 {i.author}: </b></i>"
-            elif i.is_employee:
-                author = f"<i><b>🆘 {i.author} ({i.badge}): </b></i>"
-            elif i.author == i.chat_name:
-                author = f"<i><b>👤 {i.author}: </b></i>"
-                if i.is_autoreply:
-                    author = f"<i><b>🛍️ {i.author} ({i.badge}):</b></i> "
-                elif i.author in self.cardinal.blacklist:
-                    author = f"<i><b>🚷 {i.author}: </b></i>"
-                elif i.by_bot:
-                    author = f"<i><b>🐦 {i.author}: </b></i>"
-                elif i.by_vertex:
-                    author = f"<i><b>🐺 {i.message.author}: </b></i>"
-            else:
-                author = f"<i><b>🆘 {i.author} ({_('support')}): </b></i>"
-            msg_text = f"<code>{utils.escape(i.text)}</code>" if i.text else \
-                f"<a href=\"{i.image_link}\">" \
-                f"{self.cardinal.show_image_name and not (i.author_id == self.cardinal.account.id and i.by_bot) and i.image_name or _('photo')}</a>"
-            text += f"{author}{msg_text}\n\n"
-            last_message_author_id = i.author_id
-            last_by_bot = i.by_bot
-            last_badge = i.badge
-            last_by_vertex = i.by_vertex
-
-        try:
-            self.bot.edit_message_text(text, c.message.chat.id, c.message.id,
-                                       reply_markup=kb.reply(int(chat_id), username, False, False))
-        except ApiTelegramException as e:
-            description = e.result_json.get("description", "")
-            if "message is not modified" in description:
-                return
-            raise
+        text += utils.format_messages(self.cardinal, chat.messages[-10:])
+        self.bot.edit_message_text(text, c.message.chat.id, c.message.id,
+                                   reply_markup=kb.reply(int(chat_id), username, False, False))
+        self.bot.answer_callback_query(c.id)
 
     # Ордер
     def ask_confirm_refund(self, call: CallbackQuery):
@@ -1514,6 +1454,7 @@ class TGBot:
         #
         section = c.data.split(":")[1]
         sections = {
+            "lang": (_("desc_lang"), kb.language_settings, [self.cardinal]),
             "main": (_("desc_gs"), kb.main_settings, [self.cardinal]),
             "tg": (_("desc_ns", c.message.chat.id), kb.notifications_settings,
                    [self.cardinal, c.message.chat.id, c.from_user.id]),
@@ -1569,6 +1510,25 @@ class TGBot:
     def empty_callback(self, c: CallbackQuery):
         self.bot.answer_callback_query(c.id)
 
+    def switch_lang(self, c: CallbackQuery):
+        lang = c.data.split(":")[1]
+        if lang not in ("ru", "uk"):
+            self.bot.answer_callback_query(c.id)
+            return
+
+        Localizer(lang)
+        self.cardinal.MAIN_CFG["Other"]["language"] = lang
+        self.cardinal.MAIN_CFG["FunPay"]["locale"] = lang
+        if not self.cardinal.MAIN_CFG.has_section("DisplayCurrency"):
+            self.cardinal.MAIN_CFG.add_section("DisplayCurrency")
+        self.cardinal.MAIN_CFG["DisplayCurrency"]["currency"] = "UAH" if lang == "uk" else "RUB"
+        if getattr(self.cardinal, "account", None):
+            self.cardinal.account.locale = lang
+        self.cardinal.save_config(self.cardinal.MAIN_CFG, "configs/_main.cfg")
+        self.bot.edit_message_text(_("desc_lang"), c.message.chat.id, c.message.id,
+                                   reply_markup=kb.language_settings(self.cardinal))
+        self.bot.answer_callback_query(c.id, _("language_changed"))
+
     def __register_handlers(self):
         """
         Регистрирует хэндлеры всех команд.
@@ -1586,7 +1546,6 @@ class TGBot:
         self.msg_handler(self.send_profile, commands=["profile"])
         self.msg_handler(self.manage_trash_filters, commands=["trash"])
         self.msg_handler(self.change_uah_rate, commands=["UAH", "uah"])
-        self.msg_handler(self.change_usdt_rate, commands=["usdt", "USDT"])
         self.msg_handler(self.act_change_cookie, commands=["gkey"])
         self.msg_handler(self.change_cookie, func=lambda m: self.check_state(m.chat.id, m.from_user.id,
                                                                              CBT.CHANGE_GOLDEN_KEY))
@@ -1646,6 +1605,7 @@ class TGBot:
         self.cbq_handler(self.cancel_action, lambda c: c.data == CBT.CLEAR_STATE)
         self.cbq_handler(self.send_old_mode_help_text, lambda c: c.data == CBT.OLD_MOD_HELP)
         self.cbq_handler(self.empty_callback, lambda c: c.data == CBT.EMPTY)
+        self.cbq_handler(self.switch_lang, lambda c: c.data.startswith(f"{CBT.LANG}:"))
 
     def send_notification(self, text: str | None, keyboard: K | None = None,
                           notification_type: str = utils.NotificationTypes.other, photo: bytes | None = None,
@@ -1729,7 +1689,7 @@ class TGBot:
                 self.bot.delete_my_commands(language_code=old_lang)
             except Exception:
                 logger.debug("TRACEBACK", exc_info=True)
-        for lang in (None, "uk"):
+        for lang in (None, "ru", "uk"):
             if lang is None:
                 self.bot.delete_my_commands()
             else:

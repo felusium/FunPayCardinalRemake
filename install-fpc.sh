@@ -64,7 +64,7 @@ for CANDIDATE_REPO_NAME in "$REPO_NAME" "$FALLBACK_REPO_NAME"; do
 done
 
 if [[ ! -s "$TMP_DIR/source.zip" ]]; then
-  fail "РќРµ СѓРґР°Р»РѕСЊ СЃРєР°С‡Р°С‚СЊ Р°СЂС…РёРІ СЃ GitHub."
+  fail "Не удалось скачать архив с GitHub."
 fi
 run unzip -q "$TMP_DIR/source.zip" -d "$TMP_DIR"
 

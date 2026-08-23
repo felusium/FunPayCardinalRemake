@@ -126,7 +126,8 @@ class Cardinal(object):
 
         self.account = FunPayAPI.Account(self.MAIN_CFG["FunPay"]["golden_key"],
                                          self.MAIN_CFG["FunPay"]["user_agent"],
-                                         proxy=self.proxy)
+                                         proxy=self.proxy,
+                                         locale=self.MAIN_CFG["FunPay"]["locale"])
         self.runner: FunPayAPI.Runner | None = None
         self.telegram: tg_bot.bot.TGBot | None = None
 
@@ -216,7 +217,8 @@ class Cardinal(object):
             try:
                 self.account.get()
                 self.balance = self.get_balance()
-                self.update_funpay_withdraw_rate()
+                if currency.get_display_currency(self.MAIN_CFG) == "UAH":
+                    self.update_funpay_withdraw_rate()
                 greeting_text = cardinal_tools.create_greeting_text(self)
                 cardinal_tools.set_console_title(f"FunPayCardinalRemake - {self.account.username} ({self.account.id})")
                 for line in greeting_text.split("\n"):
@@ -668,6 +670,9 @@ class Cardinal(object):
         sleep_time = 21600
         while True:
             time.sleep(sleep_time)
+            if currency.get_display_currency(self.MAIN_CFG) != "UAH":
+                sleep_time = 21600
+                continue
             result = self.update_funpay_withdraw_rate()
             sleep_time = 21600 if result else 600
 

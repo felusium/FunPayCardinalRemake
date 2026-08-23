@@ -160,6 +160,88 @@ def escape(text: str) -> str:
     return text
 
 
+def format_message_line(cardinal: Cardinal, msg, last: dict | None = None, *, force_show_author: bool = False,
+                        chat_url: bool = False, mono: bool = True, hide_watermark: bool = False,
+                        show_ads: bool = False, show_image_name: bool | None = None,
+                        system_message_style: str = "code") -> str:
+    account = cardinal.account
+    last = last or {}
+
+    is_ad = msg.author_id == 500 and getattr(msg, "interlocutor_id", None) != 500
+    if is_ad and not show_ads:
+        return ""
+
+    author_text = msg.author
+    if chat_url:
+        author_text = f"<a href='https://funpay.com/chat/?node={msg.chat_id}'>{msg.author}</a>"
+
+    if not force_show_author and msg.author_id == last.get("author_id") and msg.by_bot == last.get("by_bot") \
+            and msg.badge == last.get("badge") and msg.by_vertex == last.get("by_vertex"):
+        author = ""
+    elif msg.author_id == account.id:
+        if msg.is_autoreply:
+            author = f"<i><b>📦 {_('you')} ({msg.badge}):</b></i> "
+        elif msg.by_bot:
+            author = "<i><b>🤖 FPC:</b></i> "
+        else:
+            author = f"<i><b>🫵 {_('you')}:</b></i> "
+    elif msg.author_id == 0:
+        author = f"<i><b>🔵 {author_text}: </b></i>"
+    elif msg.is_employee:
+        author = f"<i><b>📣 {author_text} ({msg.badge}): </b></i>" if is_ad \
+            else f"<i><b>🆘 {author_text} ({msg.badge}): </b></i>"
+    elif msg.author == msg.chat_name:
+        author = f"<i><b>👤 {author_text}: </b></i>"
+        if msg.is_autoreply:
+            author = f"<i><b>🛍️ {author_text} ({msg.badge}):</b></i> "
+        elif msg.author in cardinal.blacklist:
+            author = f"<i><b>🚷 {author_text}: </b></i>"
+        elif msg.by_bot:
+            author = f"<i><b>🐦 {author_text}: </b></i>"
+        elif msg.by_vertex:
+            author = f"<i><b>🐺 {author_text}: </b></i>"
+    else:
+        author = f"<i><b>🆘 {author_text} ({_('support')}): </b></i>"
+
+    if msg.text:
+        if msg.author_id == 0 and system_message_style == "bold_italic":
+            body = f"<b><i>{escape(msg.text)}</i></b>"
+        else:
+            text = msg.text
+            hidden_wm = False
+            if hide_watermark and msg.author_id == account.id and msg.by_bot:
+                watermark = cardinal.MAIN_CFG["Other"].get("watermark", "")
+                if watermark and text.startswith(f"{watermark}\n"):
+                    text = text.replace(watermark, "", 1)
+                    hidden_wm = True
+            body = escape(text)
+            if mono:
+                body = f"<code>{body}</code>"
+            if hidden_wm:
+                body = f"<tg-spoiler>🐦</tg-spoiler>{body}"
+    elif msg.image_link:
+        is_own_bot_image = msg.author_id == account.id and msg.by_bot
+        show_name = cardinal.show_image_name if show_image_name is None else show_image_name
+        name = show_name and not is_own_bot_image and msg.image_name
+        body = f"<a href=\"{msg.image_link}\">{name or _('photo')}</a>"
+    else:
+        body = ""
+
+    return f"{author}{body}"
+
+
+def format_messages(cardinal: Cardinal, messages: list, **options) -> str:
+    lines = []
+    last: dict = {}
+    for msg in messages:
+        line = format_message_line(cardinal, msg, last, **options)
+        if not line:
+            continue
+        lines.append(line)
+        last = {"author_id": msg.author_id, "by_bot": msg.by_bot, "badge": msg.badge, "by_vertex": msg.by_vertex}
+    return "\n\n".join(lines)
+
+
 def split_by_limit(list_of_str: list[str], limit: int = 4096):
     result = []
     current = ""
@@ -251,6 +333,15 @@ def generate_profile_text(cardinal: Cardinal) -> str:
     balance = cardinal.balance
     total_rub = getattr(balance, "total_rub", 0) or 0
     available_rub = getattr(balance, "available_rub", 0) or 0
+    if currency.get_display_currency(cardinal.MAIN_CFG) == "RUB":
+        return f"""{_("profile_title")}
+
+<b>{_("profile_active_orders")}:</b> <code>{account.active_sales}</code>
+<b>{_("profile_balance")}:</b>
+    <b>RUB:</b> <code>{currency.format_amount(total_rub)} ₽</code> доступно <code>{currency.format_amount(available_rub)} ₽</code>
+
+<i>{_("profile_updated")}:</i>  <code>{time.strftime('%H:%M:%S', time.localtime(account.last_update))}</code>"""
+
     uah_total = currency.format_amount(currency.rub_to_uah(total_rub, cardinal.MAIN_CFG, False))
     uah_available = currency.format_amount(currency.rub_to_uah(available_rub, cardinal.MAIN_CFG, False))
     return f"""{_("profile_title")}

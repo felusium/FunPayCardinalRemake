@@ -335,22 +335,20 @@ withdraw_wallets_error = "❌ Не вдалося отримати гаманц�
 withdraw_session_expired = "Сесія виводу застаріла. Відкрий вивід заново."
 withdraw_enter_amount = "Гаманець: <code>{}</code>\n\nВведи суму виводу"
 withdraw_amount_error = "❌ Неправильна сума. Введи суму в гривнях, наприклад <code>1000</code>, або <code>all</code> для всього доступного балансу."
-withdraw_not_enough_balance = "❌ Недостатньо доступного балансу. Зараз доступно: <code>{} ₴</code>."
+withdraw_not_enough_balance = "❌ Недостатньо доступного балансу. Зараз доступно: <code>{}</code>."
 withdraw_preview_error = "❌ Не вдалося розрахувати вивід.\n\n<code>{}</code>"
-withdraw_confirm_text = "<b>Підтверди вивід коштів</b>\n\nЗ балансу: <code>{} ₴</code>\nДо отримання: <code>{} ₴</code>\nВідправлено: <code>{}</code>\nГаманець: <code>{}</code>\n\nПісля натискання <b>Так</b> буде відправлено запит на вивід."
+withdraw_confirm_text = "<b>Підтверди вивід коштів</b>\n\nЗ балансу: <code>{}</code>\nДо отримання: <code>{} ₴</code>\nВідправлено: <code>{}</code>\nГаманець: <code>{}</code>\n\nПісля натискання <b>Так</b> буде відправлено запит на вивід."
 withdraw_2fa_required = "FunPay запросив код підтвердження.\n\nВведи код з аутентифікатора."
 withdraw_failed = "❌ Не вдалося виконати вивід.\n\n<code>{}</code>"
-withdraw_success = "✅ Запит на вивід відправлено.\n\nСписано: <code>{} ₴</code>\nДо отримання: <code>{} ₴</code>\nВідправлено: <code>{}</code>"
+withdraw_success = "✅ Запит на вивід відправлено.\n\nСписано: <code>{}</code>\nДо отримання: <code>{} ₴</code>\nВідправлено: <code>{}</code>"
 withdraw_cancelled = "Вивід скасовано."
-uah_rate_info = "Поточний курс FunPay: <code>1 ₽ = {} UAH</code>\n\nЩоб змінити вручну, відправ:\n<code>/UAH 0.543</code>\n\nОновити з FunPay зараз:\n<code>/UAH auto</code>"
+uah_rate_info = "Поточний курс FunPay: <code>1 ₽ = {} UAH</code>\n\nЩоб змінити вручну, відправ:\n<code>/UAH 0.543</code>\n\nОновити з FunPay зараз:\n<code>/UAH auto</code>\n\nПовернути рублі:\n<code>/UAH off</code>"
 uah_rate_changed = "✅ Курс FunPay змінено: <code>1 ₽ = {} UAH</code>\n\nПокупки, баланс і вивід рахуються прямим перерахунком у UAH."
+uah_rate_disabled = "✅ Відображення в UAH вимкнено. Баланс і суми показуються в рублях."
 uah_rate_error = "❌ Неправильний курс. Приклад: <code>/UAH 0.543</code>"
-usdt_rate_info = "Поточний курс FunPay: <code>1 ₽ = {} UAH</code>\n\nЗмінити вручну:\n<code>/usdt 0.543</code>\n\nОновити з FunPay зараз:\n<code>/usdt auto</code>"
-usdt_rate_changed = "✅ Курс FunPay змінено: <code>1 ₽ = {} UAH</code>"
-usdt_rate_updating = "Оновлюю курс FunPay з виводу на банківську карту UA..."
-usdt_rate_auto_changed = "✅ Курс FunPay оновлено з банківської карти UA: <code>1 ₽ = {} UAH</code>"
-usdt_rate_auto_error = "❌ Не вдалося оновити курс з FunPay. Залишив останній збережений курс."
-usdt_rate_error = "❌ Неправильний курс. Приклад: <code>/usdt 0.543</code>"
+uah_rate_updating = "Оновлюю курс FunPay з виводу на банківську карту UA..."
+uah_rate_auto_changed = "✅ Курс FunPay оновлено з банківської карти UA: <code>1 ₽ = {} UAH</code>"
+uah_rate_auto_error = "❌ Не вдалося оновити курс з FunPay. Залишив останній збережений курс."
 
 act_change_golden_key = "Введи golden_key"
 cookie_changed = "✅ golden_key успішно змінено{}.\n"
@@ -472,7 +470,8 @@ hidden_commands_help = """<b>Приховані команди:</b>
 /del_logs - видалити старі лог-файли
 /gkey - змінити golden_key
 /UAH 0.543 - змінити курс FunPay UAH/RUB
-/usdt auto - оновити курс з виводу на карту UA
+/UAH auto - оновити курс з виводу на карту UA
+/UAH off - показувати суми в рублях
 /update - оновити версію
 /trash - фільтр зайвих повідомлень FunPay
 /old - Список #
@@ -492,6 +491,7 @@ update_downloading = "Завантажую оновлення з felusium/FunPay
 update_failed = "❌ Не вдалося оновитися: <code>{}</code>"
 update_success_restart = "✅ {}\n\nПерезапусти бота командою /restart."
 lang_warning_uk = "Переклад складено за допомогою ChatGPT."
+language_changed = "Мову змінено."
 
 # - Опис змінних
 v_edit_greeting_text = "Введи текст привітального повідомлення."

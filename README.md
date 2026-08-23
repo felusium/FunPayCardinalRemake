@@ -71,7 +71,7 @@ python main.py
 Автоматичний встановлювач підходить для Ubuntu/Debian-серверів із `systemd`.
 
 ```bash
-wget https://raw.githubusercontent.com/felusium/FunPayCardinal_Remake/main/install-fpc.sh -O install-fpc.sh && bash install-fpc.sh
+wget https://raw.githubusercontent.com/felusium/FunPayCardinalRemake/main/install-fpc.sh -O install-fpc.sh && bash install-fpc.sh
 ```
 
 Встановлювач:
@@ -112,8 +112,8 @@ sudo journalctl -u FunPayCardinalRemake@fpc.service -n 100 --no-pager
 ```bash
 sudo apt update
 sudo apt install -y python3 python3-venv python3-pip git
-git clone https://github.com/felusium/FunPayCardinal_Remake.git
-cd FunPayCardinal_Remake
+git clone https://github.com/felusium/FunPayCardinalRemake.git
+cd FunPayCardinalRemake
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -U pip
@@ -124,7 +124,7 @@ python main.py
 Для повторного запуску:
 
 ```bash
-cd FunPayCardinal_Remake
+cd FunPayCardinalRemake
 source .venv/bin/activate
 python main.py
 ```
@@ -136,8 +136,8 @@ Termux не використовує `systemd`, тому Ubuntu-встановл
 ```bash
 pkg update && pkg upgrade
 pkg install python git clang rust make pkg-config libjpeg-turbo zlib libxml2 libxslt openssl libffi
-git clone https://github.com/felusium/FunPayCardinal_Remake.git
-cd FunPayCardinal_Remake
+git clone https://github.com/felusium/FunPayCardinalRemake.git
+cd FunPayCardinalRemake
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -U pip setuptools wheel
@@ -150,7 +150,7 @@ python main.py
 ```bash
 pkg install tmux
 termux-wake-lock
-cd FunPayCardinal_Remake
+cd FunPayCardinalRemake
 tmux new -s fpc
 source .venv/bin/activate
 python main.py

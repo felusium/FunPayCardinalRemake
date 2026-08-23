@@ -2,7 +2,8 @@
 set -Eeuo pipefail
 
 REPO_OWNER="felusium"
-REPO_NAME="FunPayCardinal_Remake"
+REPO_NAME="FunPayCardinalRemake"
+FALLBACK_REPO_NAME="FunPayCardinal_Remake"
 BRANCH="main"
 APP_DIR_NAME="FunPayCardinalRemake"
 SERVICE_NAME="FunPayCardinalRemake"
@@ -45,8 +46,6 @@ APP_HOME="$(eval echo "~$APP_USER")"
 APP_DIR="$APP_HOME/$APP_DIR_NAME"
 VENV_DIR="$APP_HOME/pyvenv"
 TMP_DIR="$(mktemp -d)"
-ARCHIVE_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/archive/refs/heads/${BRANCH}.zip"
-
 cleanup() {
   rm -rf "$TMP_DIR"
 }
@@ -57,10 +56,19 @@ run sudo apt update
 run sudo apt install -y python3 python3-venv python3-pip unzip curl ca-certificates rsync
 
 echo -e "${GREEN}Скачиваю исходники из твоего репозитория...${RESET}"
-run curl -L "$ARCHIVE_URL" -o "$TMP_DIR/source.zip"
+for CANDIDATE_REPO_NAME in "$REPO_NAME" "$FALLBACK_REPO_NAME"; do
+  ARCHIVE_URL="https://github.com/${REPO_OWNER}/${CANDIDATE_REPO_NAME}/archive/refs/heads/${BRANCH}.zip"
+  if curl -fL "$ARCHIVE_URL" -o "$TMP_DIR/source.zip"; then
+    break
+  fi
+done
+
+if [[ ! -s "$TMP_DIR/source.zip" ]]; then
+  fail "РќРµ СѓРґР°Р»РѕСЊ СЃРєР°С‡Р°С‚СЊ Р°СЂС…РёРІ СЃ GitHub."
+fi
 run unzip -q "$TMP_DIR/source.zip" -d "$TMP_DIR"
 
-SRC_DIR="$(find "$TMP_DIR" -maxdepth 1 -type d -name "${REPO_NAME}-*" | head -n 1)"
+SRC_DIR="$(find "$TMP_DIR" -maxdepth 2 -type f -name "main.py" -printf '%h\n' | head -n 1)"
 if [[ -z "${SRC_DIR:-}" || ! -d "$SRC_DIR" ]]; then
   fail "Не удалось найти распакованную папку проекта."
 fi

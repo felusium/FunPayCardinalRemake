@@ -3,12 +3,14 @@ from __future__ import annotations
 import os
 import shutil
 import tempfile
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
 
 
-REPO = "felusium/FunPayCardinal_Remake"
+REPO = "felusium/FunPayCardinalRemake"
+FALLBACK_REPOS = ("felusium/FunPayCardinal_Remake",)
 BRANCH = "main"
 ARCHIVE_URL = f"https://github.com/{REPO}/archive/refs/heads/{BRANCH}.zip"
 
@@ -86,17 +88,38 @@ def _find_source_root(extract_dir: Path) -> Path:
     return source_root
 
 
-def update_from_github(repo: str = REPO, branch: str = BRANCH) -> str:
+def _download_archive(repo: str, branch: str, zip_path: Path) -> str:
     archive_url = f"https://github.com/{repo}/archive/refs/heads/{branch}.zip"
+
+    with urllib.request.urlopen(archive_url, timeout=60) as response:
+        zip_path.write_bytes(response.read())
+
+    return repo
+
+
+def update_from_github(repo: str = REPO, branch: str = BRANCH) -> str:
     project_root = Path.cwd()
+    repos = (repo, *FALLBACK_REPOS) if repo == REPO else (repo,)
+    last_error: Exception | None = None
 
     with tempfile.TemporaryDirectory(prefix="fpcr-update-") as tmp:
         tmp_dir = Path(tmp)
         zip_path = tmp_dir / "source.zip"
         extract_dir = tmp_dir / "source"
 
-        with urllib.request.urlopen(archive_url, timeout=60) as response:
-            zip_path.write_bytes(response.read())
+        used_repo = ""
+        for candidate_repo in repos:
+            try:
+                used_repo = _download_archive(candidate_repo, branch, zip_path)
+                break
+            except urllib.error.HTTPError as e:
+                last_error = e
+                if e.code != 404:
+                    raise
+            except urllib.error.URLError as e:
+                last_error = e
+        else:
+            raise RuntimeError(f"Не удалось скачать обновление из {', '.join(repos)}: {last_error}")
 
         with zipfile.ZipFile(zip_path) as archive:
             archive.extractall(extract_dir)
@@ -115,4 +138,4 @@ def update_from_github(repo: str = REPO, branch: str = BRANCH) -> str:
                 continue
             _copy_path(source, project_root / source.name, project_root)
 
-    return f"Обновление из {repo}@{branch} установлено."
+    return f"Обновление из {used_repo}@{branch} установлено."

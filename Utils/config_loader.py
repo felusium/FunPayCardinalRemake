@@ -174,6 +174,18 @@ def load_main_config(config_path: str):
             config.remove_option(section_name, "cacheInitChats")
             with open("configs/_main.cfg", "w", encoding="utf-8") as f:
                 config.write(f)
+        elif section_name == "ReviewReply":
+            changed = False
+            for stars in ("4", "5"):
+                toggle = f"star{stars}Reply"
+                text = f"star{stars}ReplyText"
+                if config[section_name].get(toggle, "0") == "0" and not config[section_name].get(text, "").strip():
+                    config.set(section_name, toggle, "1")
+                    config.set(section_name, text, "$username, спасибо за отзыв!")
+                    changed = True
+            if changed:
+                with open("configs/_main.cfg", "w", encoding="utf-8") as f:
+                    config.write(f)
         # END OF UPDATE
 
         for param_name in values[section_name]:

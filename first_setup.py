@@ -67,13 +67,13 @@ default_config = {
         "star1Reply": "0",
         "star2Reply": "0",
         "star3Reply": "0",
-        "star4Reply": "0",
-        "star5Reply": "0",
+        "star4Reply": "1",
+        "star5Reply": "1",
         "star1ReplyText": "",
         "star2ReplyText": "",
         "star3ReplyText": "",
-        "star4ReplyText": "",
-        "star5ReplyText": "",
+        "star4ReplyText": "$username, спасибо за отзыв!",
+        "star5ReplyText": "$username, спасибо за отзыв!",
     },
 
     "Proxy": {

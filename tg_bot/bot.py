@@ -1,4 +1,4 @@
-﻿"""
+"""
 В данном модуле написан Telegram бот.
 """
 
@@ -1628,8 +1628,7 @@ class TGBot:
             for chat_id, chat_settings in user_settings.items():
                 if chat_id in sent_chats:
                     continue
-                if notification_type != utils.NotificationTypes.important_announcement and \
-                        not bool(chat_settings.get(notification_type)):
+                if not bool(chat_settings.get(notification_type)):
                     continue
 
                 try:

@@ -327,16 +327,12 @@ def generate_profile_text(cardinal: Cardinal) -> str:
     balance = cardinal.balance
     total_rub = getattr(balance, "total_rub", 0) or 0
     available_rub = getattr(balance, "available_rub", 0) or 0
-    total_usd = currency.format_amount(getattr(balance, "total_usd", 0) or 0)
-    available_usd = currency.format_amount(getattr(balance, "available_usd", 0) or 0)
-    usd_balance_line = f"    <b>USD:</b> <code>{total_usd} $</code> доступно <code>{available_usd} $</code>"
     if currency.get_display_currency(cardinal.MAIN_CFG) == "RUB":
         return f"""{_("profile_title")}
 
 <b>{_("profile_active_orders")}:</b> <code>{account.active_sales}</code>
 <b>{_("profile_balance")}:</b>
     <b>RUB:</b> <code>{currency.format_amount(total_rub)} ₽</code> доступно <code>{currency.format_amount(available_rub)} ₽</code>
-{usd_balance_line}
 
 <i>{_("profile_updated")}:</i>  <code>{time.strftime('%H:%M:%S', time.localtime(account.last_update))}</code>"""
 
@@ -347,7 +343,6 @@ def generate_profile_text(cardinal: Cardinal) -> str:
 <b>{_("profile_active_orders")}:</b> <code>{account.active_sales}</code>
 <b>{_("profile_balance")}:</b> 
 {_("profile_uah_balance_line", uah_total, uah_available)}
-{usd_balance_line}
 
 <i>{_("profile_updated")}:</i>  <code>{time.strftime('%H:%M:%S', time.localtime(account.last_update))}</code>"""
 

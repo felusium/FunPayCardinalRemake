@@ -555,7 +555,7 @@ def format_order_text(text: str, order: FunPayAPI.types.OrderShortcut | FunPayAP
         "$order_desc": description,
         "$order_title": description,
         "$order_params": params,
-        "$order_price": currency.format_money(order.price, order.currency, config),
+        "$order_price": currency.format_money(order.price if isinstance(order, FunPayAPI.types.OrderShortcut) else order.sum, order.currency, config),
         "$order_id": order.id,
         "$order_link": f"https://funpay.com/orders/{order.id}/",
         "$category_fullname": subcategory_fullname,

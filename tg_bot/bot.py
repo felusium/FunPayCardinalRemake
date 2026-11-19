@@ -24,6 +24,7 @@ import string
 import zipfile
 import psutil
 import telebot
+from requests.exceptions import ConnectionError, Timeout
 from telebot.apihelper import ApiTelegramException
 import logging
 
@@ -42,9 +43,9 @@ telebot.apihelper.ENABLE_MIDDLEWARE = True
 class TGBot:
     def __init__(self, cardinal: Cardinal):
         self.cardinal = cardinal
-        if cardinal.MAIN_CFG["Telegram"]["proxy"]:
-            telebot.apihelper.proxy = {"https": cardinal.MAIN_CFG["Telegram"]["proxy"],
-                                       "http": cardinal.MAIN_CFG["Telegram"]["proxy"]}
+        proxy = cardinal.MAIN_CFG["Telegram"]["proxy"].strip()
+        telebot.apihelper.proxy = {"https": proxy, "http": proxy} if proxy else None
+        self._commands_ready = False
         self.bot = telebot.TeleBot(self.cardinal.MAIN_CFG["Telegram"]["token"], parse_mode="HTML",
                                    allow_sending_without_reply=True, num_threads=5)
 
@@ -1671,10 +1672,34 @@ class TGBot:
             return
         self.commands[command] = help_text
 
+    def _get_bot_user(self):
+        """При сетевом сбое проверяет второй режим DNS того же SOCKS5-прокси."""
+        try:
+            return self.bot.user
+        except (ConnectionError, Timeout):
+            original_proxy = telebot.apihelper.proxy
+            proxy = (original_proxy or {}).get("https", "")
+            scheme, separator, address = proxy.partition("://")
+            if not separator or scheme.lower() not in ("socks5", "socks5h"):
+                raise
+
+            alternate_scheme = "socks5h" if scheme.lower() == "socks5" else "socks5"
+            alternate_proxy = f"{alternate_scheme}://{address}"
+            logger.warning(_("log_tg_proxy_dns_retry", alternate_scheme))
+            telebot.apihelper.proxy = {"https": alternate_proxy, "http": alternate_proxy}
+            try:
+                user = self.bot.user
+            except Exception:
+                telebot.apihelper.proxy = original_proxy
+                raise
+            logger.info(_("log_tg_proxy_dns_success", alternate_scheme))
+            return user
+
     def setup_commands(self):
         """
         Устанавливает меню команд.
         """
+        self._get_bot_user()
         commands = [
             (command, self.commands[command])
             for command in self.visible_commands
@@ -1692,6 +1717,7 @@ class TGBot:
                 self.bot.delete_my_commands(language_code=lang)
             bot_commands = [BotCommand(f"/{command}", _(help_text, language=lang)) for command, help_text in commands]
             self.bot.set_my_commands(bot_commands, language_code=lang)
+        self._commands_ready = True
 
     def edit_bot(self):
         """
@@ -1707,15 +1733,30 @@ class TGBot:
         """
         Запускает поллинг.
         """
-        self.send_notification(_("bot_started"), notification_type=utils.NotificationTypes.bot_start)
+        notified = False
         k_err = 0
         while True:
             try:
-                logger.info(_("log_tg_started", self.bot.user.username))
+                user = self._get_bot_user()
+                if not self._commands_ready:
+                    try:
+                        self.setup_commands()
+                    except Exception:
+                        logger.warning(_("log_tg_commands_error"))
+                        logger.debug("TRACEBACK", exc_info=True)
+                if not notified:
+                    self.send_notification(_("bot_started"), notification_type=utils.NotificationTypes.bot_start)
+                    notified = True
+                logger.info(_("log_tg_started", user.username))
                 self.bot.infinity_polling(logger_level=logging.DEBUG)
-            except:
+            except Exception as exc:
                 k_err += 1
-                logger.error(_("log_tg_update_error", k_err))
+                if isinstance(exc, (ConnectionError, Timeout)):
+                    logger.error(_("log_tg_network_error", k_err))
+                elif isinstance(exc, ApiTelegramException) and exc.error_code == 401:
+                    logger.error(_("log_tg_token_error"))
+                else:
+                    logger.error(_("log_tg_update_error", k_err))
                 logger.debug("TRACEBACK", exc_info=True)
                 time.sleep(10)
 
